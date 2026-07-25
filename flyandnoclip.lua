@@ -1,5 +1,5 @@
 -- ============================================================================
--- FLYANDNOCLIP ULTIMATE SUITE (CAMERA-BASED FLIGHT & VERTICAL CONTROL)
+-- FLYANDNOCLIP ULTIMATE SUITE (FIXED FULL 3D VERTICAL CAMERA FLIGHT)
 -- ============================================================================
 
 local Players = game:GetService("Players")
@@ -200,7 +200,7 @@ createToggle("Noclip", function(state)
     NoclipActive = state
 end)
 
--- 2. Fly Toggle with absolute stable physics configuration
+-- 2. Fly Toggle with physics initialization
 createToggle("Fly", function(state)
     Flying = state
     local character = LocalPlayer.Character
@@ -297,7 +297,7 @@ InfoText.TextWrapped = true
 InfoText.TextXAlignment = Enum.TextXAlignment.Center
 InfoText.TextYAlignment = Enum.TextYAlignment.Center
 
--- Main Loops (Noclip and Camera-Based Directional Flight)
+-- Main Loops (Noclip and Full 3D Camera Directional Flight)
 RunService.Stepped:Connect(function()
     if NoclipActive and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -316,26 +316,30 @@ RunService.RenderStepped:Connect(function()
         
         if rootPart and BodyVelocity and BodyGyro then
             local moveDir = Vector3.new(0, 0, 0)
+            local lookVector = camera.CFrame.LookVector
+            local rightVector = camera.CFrame.RightVector
             
-            -- Full Camera-based direction: wherever you look (up/down/forward), you fly there!
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+            -- PC Keyboard controls (W, S, A, D) strictly follow camera view in all directions
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
             
-            -- Mobile thumbstick & jump/fall integration with camera look vector
+            -- Mobile thumbstick joystick full 3D integration
             if humanoid and humanoid.MoveDirection.Magnitude > 0 then
-                -- Project move direction relative to camera look vector for vertical full-flight support
-                local camLook = camera.CFrame.LookVector
-                moveDir = (camera.CFrame.RightVector * humanoid.MoveDirection.X) + (camLook * (-humanoid.MoveDirection.Z))
+                -- Map joystick movement directly to camera look vector (allows moving up/down by looking up/down)
+                local camFlatLook = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
+                moveDir = (rightVector * humanoid.MoveDirection.X) + (camFlatLook * (-humanoid.MoveDirection.Z))
+                -- Merge full vertical pitch component based on camera angle when joystick is pushed forward
+                moveDir = moveDir + (lookVector * (-humanoid.MoveDirection.Z))
             end
             
-            -- If player is holding jump or moving joystick forward while looking up/down
+            -- Jump button pushes character straight up
             if humanoid and humanoid.Jump then
                 moveDir = moveDir + Vector3.new(0, 1, 0)
             end
             
-            BodyVelocity.Velocity = moveDir * FlySpeed
+            BodyVelocity.Velocity = moveDir.Unit * FlySpeed
             BodyGyro.CFrame = camera.CFrame
         end
     end
