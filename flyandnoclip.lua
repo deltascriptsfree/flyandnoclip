@@ -1,5 +1,5 @@
 -- ============================================================================
--- FLYANDNOCLIP ULTIMATE SUITE (DELTA MOBILE OPTIMIZED)
+-- FLYANDNOCLIP ULTIMATE SUITE (CAMERA-BASED FLIGHT & VERTICAL CONTROL)
 -- ============================================================================
 
 local Players = game:GetService("Players")
@@ -236,7 +236,7 @@ createToggle("Fly", function(state)
     end
 end)
 
--- 3. Speed Control Section
+-- 3. Speed Control Section (Default 60)
 local SpeedLabel = Instance.new("TextLabel")
 SpeedLabel.Parent = MainContent
 SpeedLabel.BackgroundTransparency = 1
@@ -297,7 +297,7 @@ InfoText.TextWrapped = true
 InfoText.TextXAlignment = Enum.TextXAlignment.Center
 InfoText.TextYAlignment = Enum.TextYAlignment.Center
 
--- Main Loops (Noclip and Fully Responsive Fly Movement for Mobile & PC)
+-- Main Loops (Noclip and Camera-Based Directional Flight)
 RunService.Stepped:Connect(function()
     if NoclipActive and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -317,15 +317,22 @@ RunService.RenderStepped:Connect(function()
         if rootPart and BodyVelocity and BodyGyro then
             local moveDir = Vector3.new(0, 0, 0)
             
-            -- Keyboard input handling (PC)
+            -- Full Camera-based direction: wherever you look (up/down/forward), you fly there!
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
             
-            -- Mobile Thumbstick integration
+            -- Mobile thumbstick & jump/fall integration with camera look vector
             if humanoid and humanoid.MoveDirection.Magnitude > 0 then
-                moveDir = humanoid.MoveDirection
+                -- Project move direction relative to camera look vector for vertical full-flight support
+                local camLook = camera.CFrame.LookVector
+                moveDir = (camera.CFrame.RightVector * humanoid.MoveDirection.X) + (camLook * (-humanoid.MoveDirection.Z))
+            end
+            
+            -- If player is holding jump or moving joystick forward while looking up/down
+            if humanoid and humanoid.Jump then
+                moveDir = moveDir + Vector3.new(0, 1, 0)
             end
             
             BodyVelocity.Velocity = moveDir * FlySpeed
