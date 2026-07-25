@@ -1,516 +1,475 @@
--- FlyAndNoclip Script for Delta Executor (Injector)
--- Telegram: t.me/freedeltascripts
+-- ============================================================================
+-- FLYANDNOCLIP ULTIMATE SUITE (DELTA MOBILE OPTIMIZED)
+-- ============================================================================
 
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
--- Services
-local runService = game:GetService("RunService")
-local userInputService = game:GetService("UserInputService")
-local players = game:GetService("Players")
+local Flying = false
+local NoclipActive = false
+local FlySpeed = 65
+local BodyVelocity, BodyGyro
+local movementConnection = nil
 
--- State
-local flyEnabled = false
-local noclipEnabled = false
-local flySpeed = 60
-local menuVisible = true
-local flyBodyVelocity = nil
-local flyBodyGyro = nil
-local noclipConnection = nil
-
--- GUI Creation
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlyAndNoclip"
-screenGui.Parent = player.PlayerGui
-
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 280, 0, 200)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -100)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-mainFrame.BackgroundTransparency = 0.05
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
-
-local shadow = Instance.new("UICorner")
-shadow.CornerRadius = UDim.new(0, 10)
-shadow.Parent = mainFrame
-
-local shadow2 = Instance.new("UIStroke")
-shadow2.Color = Color3.fromRGB(80, 80, 200)
-shadow2.Thickness = 1.5
-shadow2.Parent = mainFrame
-
--- Title Bar
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 35)
-titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 10)
-titleCorner.Parent = titleBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "✦ FlyAndNoclip ✦"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextScaled = true
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleBar
-
--- Minimize Button
-local minimizeButton = Instance.new("TextButton")
-minimizeButton.Size = UDim2.new(0, 28, 0, 28)
-minimizeButton.Position = UDim2.new(1, -33, 0, 3)
-minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-minimizeButton.BorderSizePixel = 0
-minimizeButton.Text = "−"
-minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeButton.TextScaled = true
-minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.Parent = titleBar
-
-local minimizeCorner = Instance.new("UICorner")
-minimizeCorner.CornerRadius = UDim.new(0, 6)
-minimizeCorner.Parent = minimizeButton
-
--- Tab Buttons
-local tabFrame = Instance.new("Frame")
-tabFrame.Size = UDim2.new(1, 0, 0, 30)
-tabFrame.Position = UDim2.new(0, 0, 0, 35)
-tabFrame.BackgroundTransparency = 1
-tabFrame.Parent = mainFrame
-
-local mainTabBtn = Instance.new("TextButton")
-mainTabBtn.Size = UDim2.new(0.5, 0, 1, 0)
-mainTabBtn.Position = UDim2.new(0, 0, 0, 0)
-mainTabBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-mainTabBtn.BorderSizePixel = 0
-mainTabBtn.Text = "Main"
-mainTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-mainTabBtn.TextScaled = true
-mainTabBtn.Font = Enum.Font.GothamBold
-mainTabBtn.Parent = tabFrame
-
-local mainTabCorner = Instance.new("UICorner")
-mainTabCorner.CornerRadius = UDim.new(0, 0)
-mainTabCorner.Parent = mainTabBtn
-
-local infoTabBtn = Instance.new("TextButton")
-infoTabBtn.Size = UDim2.new(0.5, 0, 1, 0)
-infoTabBtn.Position = UDim2.new(0.5, 0, 0, 0)
-infoTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-infoTabBtn.BorderSizePixel = 0
-infoTabBtn.Text = "Info"
-infoTabBtn.TextColor3 = Color3.fromRGB(200, 200, 230)
-infoTabBtn.TextScaled = true
-infoTabBtn.Font = Enum.Font.GothamBold
-infoTabBtn.Parent = tabFrame
-
-local infoTabCorner = Instance.new("UICorner")
-infoTabCorner.CornerRadius = UDim.new(0, 0)
-infoTabCorner.Parent = infoTabBtn
-
--- Content Container
-local contentContainer = Instance.new("Frame")
-contentContainer.Size = UDim2.new(1, 0, 1, -65)
-contentContainer.Position = UDim2.new(0, 0, 0, 65)
-contentContainer.BackgroundTransparency = 1
-contentContainer.Parent = mainFrame
-
--- Main Content
-local mainContent = Instance.new("Frame")
-mainContent.Size = UDim2.new(1, 0, 1, 0)
-mainContent.BackgroundTransparency = 1
-mainContent.Parent = contentContainer
-
--- Info Content
-local infoContent = Instance.new("Frame")
-infoContent.Size = UDim2.new(1, 0, 1, 0)
-infoContent.BackgroundTransparency = 1
-infoContent.Visible = false
-infoContent.Parent = contentContainer
-
--- Function to create toggle
-local function createToggle(parent, text, state, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 0, 40)
-    frame.Position = UDim2.new(0, 10, 0, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(220, 220, 240)
-    label.TextScaled = true
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 70, 0, 28)
-    button.Position = UDim2.new(1, -80, 0.5, -14)
-    button.BackgroundColor3 = state and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(200, 50, 50)
-    button.BorderSizePixel = 0
-    button.Text = state and "ON" or "OFF"
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextScaled = true
-    button.Font = Enum.Font.GothamBold
-    button.Parent = frame
-
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = button
-
-    button.MouseButton1Click:Connect(function()
-        state = not state
-        button.BackgroundColor3 = state and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(200, 50, 50)
-        button.Text = state and "ON" or "OFF"
-        callback(state)
-    end)
-
-    return {frame, button}
+-- Cleanup previous GUI
+if CoreGui:FindFirstChild("FlyAndNoclipSuite") then
+    CoreGui.FlyAndNoclipSuite:Destroy()
 end
 
--- Fly Toggle
-local flyToggle = createToggle(mainContent, "Fly", false, function(state)
-    flyEnabled = state
-    if state then
-        enableFly()
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlyAndNoclipSuite"
+ScreenGui.ResetOnSpawn = false
+
+if gethui then
+    ScreenGui.Parent = gethui()
+else
+    ScreenGui.Parent = CoreGui
+end
+
+-- Main Window Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.BorderColor3 = Color3.fromRGB(0, 170, 255)
+MainFrame.BorderSizePixel = 2
+MainFrame.Position = UDim2.new(0.5, -140, 0.4, -120)
+MainFrame.Size = UDim2.new(0, 280, 0, 250)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+TitleBar.BorderSizePixel = 0
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 8)
+TitleCorner.Parent = TitleBar
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TitleBar
+TitleText.BackgroundTransparency = 1
+TitleText.Position = UDim2.new(0, 10, 0, 0)
+TitleText.Size = UDim2.new(1, -35, 1, 0)
+TitleText.Font = Enum.Font.GothamBold
+TitleText.Text = "FlyAndNoclip"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 14
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = TitleBar
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+CloseButton.BorderSizePixel = 0
+CloseButton.Position = UDim2.new(1, -30, 0, 5)
+CloseButton.Size = UDim2.new(0, 24, 0, 24)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 12
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 4)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Tab Switcher Bar
+local TabBar = Instance.new("Frame")
+TabBar.Parent = MainFrame
+TabBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+TabBar.BorderSizePixel = 0
+TabBar.Position = UDim2.new(0, 0, 0, 35)
+TabBar.Size = UDim2.new(1, 0, 0, 32)
+
+local MainTabBtn = Instance.new("TextButton")
+MainTabBtn.Parent = TabBar
+MainTabBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+MainTabBtn.BorderSizePixel = 0
+MainTabBtn.Position = UDim2.new(0, 0, 0, 0)
+MainTabBtn.Size = UDim2.new(0.5, -1, 1, 0)
+MainTabBtn.Font = Enum.Font.GothamBold
+MainTabBtn.Text = "Main"
+MainTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainTabBtn.TextSize = 12
+
+local InfoTabBtn = Instance.new("TextButton")
+InfoTabBtn.Parent = TabBar
+InfoTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+InfoTabBtn.BorderSizePixel = 0
+InfoTabBtn.Position = UDim2.new(0.5, 1, 0, 0)
+InfoTabBtn.Size = UDim2.new(0.5, -1, 1, 0)
+InfoTabBtn.Font = Enum.Font.GothamBold
+InfoTabBtn.Text = "Info"
+InfoTabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+InfoTabBtn.TextSize = 12
+
+-- Content Container
+local MainContent = Instance.new("Frame")
+MainContent.Parent = MainFrame
+MainContent.BackgroundTransparency = 1
+MainContent.Position = UDim2.new(0, 0, 0, 67)
+MainContent.Size = UDim2.new(1, 0, 1, -67)
+
+local InfoContent = Instance.new("Frame")
+InfoContent.Parent = MainFrame
+InfoContent.BackgroundTransparency = 1
+InfoContent.Position = UDim2.new(0, 0, 0, 67)
+InfoContent.Size = UDim2.new(1, 0, 1, -67)
+InfoContent.Visible = false
+
+-- Tab switching
+MainTabBtn.MouseButton1Click:Connect(function()
+    MainContent.Visible = true
+    InfoContent.Visible = false
+    MainTabBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    MainTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    InfoTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    InfoTabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+end)
+
+InfoTabBtn.MouseButton1Click:Connect(function()
+    MainContent.Visible = false
+    InfoContent.Visible = true
+    InfoTabBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    InfoTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MainTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    MainTabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+end)
+
+-- ================= MAIN CONTENT =================
+
+-- Noclip Toggle
+local NoclipBtn = Instance.new("TextButton")
+NoclipBtn.Parent = MainContent
+NoclipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+NoclipBtn.BorderSizePixel = 0
+NoclipBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
+NoclipBtn.Size = UDim2.new(0.9, 0, 0, 38)
+NoclipBtn.Font = Enum.Font.GothamBold
+NoclipBtn.Text = "Noclip: OFF"
+NoclipBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+NoclipBtn.TextSize = 13
+
+local NoclipCorner = Instance.new("UICorner")
+NoclipCorner.CornerRadius = UDim.new(0, 6)
+NoclipCorner.Parent = NoclipBtn
+
+local noclipState = false
+NoclipBtn.MouseButton1Click:Connect(function()
+    noclipState = not noclipState
+    NoclipActive = noclipState
+    if noclipState then
+        NoclipBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 70)
+        NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        NoclipBtn.Text = "Noclip: ON"
     else
-        disableFly()
+        NoclipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        NoclipBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        NoclipBtn.Text = "Noclip: OFF"
     end
 end)
 
--- Noclip Toggle
-local noclipToggle = createToggle(mainContent, "Noclip", false, function(state)
-    noclipEnabled = state
-    if state then
-        enableNoclip()
+-- Fly Toggle
+local FlyBtn = Instance.new("TextButton")
+FlyBtn.Parent = MainContent
+FlyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+FlyBtn.BorderSizePixel = 0
+FlyBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
+FlyBtn.Size = UDim2.new(0.9, 0, 0, 38)
+FlyBtn.Font = Enum.Font.GothamBold
+FlyBtn.Text = "Fly: OFF"
+FlyBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+FlyBtn.TextSize = 13
+
+local FlyCorner = Instance.new("UICorner")
+FlyCorner.CornerRadius = UDim.new(0, 6)
+FlyCorner.Parent = FlyBtn
+
+local flyState = false
+FlyBtn.MouseButton1Click:Connect(function()
+    flyState = not flyState
+    Flying = flyState
+    if flyState then
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 70)
+        FlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        FlyBtn.Text = "Fly: ON"
     else
-        disableNoclip()
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        FlyBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        FlyBtn.Text = "Fly: OFF"
+        disableFly()
+    end
+    if flyState then
+        enableFly()
     end
 end)
 
 -- Speed Controls
-local speedFrame = Instance.new("Frame")
-speedFrame.Size = UDim2.new(1, -20, 0, 50)
-speedFrame.Position = UDim2.new(0, 10, 0, 85)
-speedFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-speedFrame.BorderSizePixel = 0
-speedFrame.Parent = mainContent
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Parent = MainContent
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Position = UDim2.new(0.05, 0, 0.42, 0)
+SpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.Text = "Speed: " .. FlySpeed
+SpeedLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+SpeedLabel.TextSize = 14
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Center
 
-local speedCorner = Instance.new("UICorner")
-speedCorner.CornerRadius = UDim.new(0, 6)
-speedCorner.Parent = speedFrame
+local SpeedFrame = Instance.new("Frame")
+SpeedFrame.Parent = MainContent
+SpeedFrame.BackgroundTransparency = 1
+SpeedFrame.Position = UDim2.new(0.05, 0, 0.5, 0)
+SpeedFrame.Size = UDim2.new(0.9, 0, 0, 36)
 
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(0.5, 0, 0.5, 0)
-speedLabel.Position = UDim2.new(0, 10, 0, 2)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "Speed: 60"
-speedLabel.TextColor3 = Color3.fromRGB(220, 220, 240)
-speedLabel.TextScaled = true
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextXAlignment = Enum.TextXAlignment.Left
-speedLabel.Parent = speedFrame
+local SpeedDown = Instance.new("TextButton")
+SpeedDown.Parent = SpeedFrame
+SpeedDown.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+SpeedDown.BorderSizePixel = 0
+SpeedDown.Position = UDim2.new(0, 0, 0, 0)
+SpeedDown.Size = UDim2.new(0.45, 0, 1, 0)
+SpeedDown.Font = Enum.Font.GothamBold
+SpeedDown.Text = "−"
+SpeedDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedDown.TextSize = 20
 
-local speedValue = Instance.new("TextBox")
-speedValue.Size = UDim2.new(0, 60, 0, 30)
-speedValue.Position = UDim2.new(0.65, 0, 0.5, -15)
-speedValue.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-speedValue.BorderSizePixel = 0
-speedValue.Text = "60"
-speedValue.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedValue.TextScaled = true
-speedValue.Font = Enum.Font.Gotham
-speedValue.Parent = speedFrame
+local SpeedDownCorner = Instance.new("UICorner")
+SpeedDownCorner.CornerRadius = UDim.new(0, 6)
+SpeedDownCorner.Parent = SpeedDown
 
-local speedCorner2 = Instance.new("UICorner")
-speedCorner2.CornerRadius = UDim.new(0, 6)
-speedCorner2.Parent = speedValue
+local SpeedValue = Instance.new("TextLabel")
+SpeedValue.Parent = SpeedFrame
+SpeedValue.BackgroundTransparency = 1
+SpeedValue.Position = UDim2.new(0.45, 0, 0, 0)
+SpeedValue.Size = UDim2.new(0.1, 0, 1, 0)
+SpeedValue.Font = Enum.Font.GothamBold
+SpeedValue.Text = tostring(FlySpeed)
+SpeedValue.TextColor3 = Color3.fromRGB(0, 170, 255)
+SpeedValue.TextSize = 18
+SpeedValue.TextXAlignment = Enum.TextXAlignment.Center
 
-local minusBtn = Instance.new("TextButton")
-minusBtn.Size = UDim2.new(0, 28, 0, 28)
-minusBtn.Position = UDim2.new(0.52, 0, 0.5, -14)
-minusBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-minusBtn.BorderSizePixel = 0
-minusBtn.Text = "−"
-minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minusBtn.TextScaled = true
-minusBtn.Font = Enum.Font.GothamBold
-minusBtn.Parent = speedFrame
+local SpeedUp = Instance.new("TextButton")
+SpeedUp.Parent = SpeedFrame
+SpeedUp.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+SpeedUp.BorderSizePixel = 0
+SpeedUp.Position = UDim2.new(0.55, 0, 0, 0)
+SpeedUp.Size = UDim2.new(0.45, 0, 1, 0)
+SpeedUp.Font = Enum.Font.GothamBold
+SpeedUp.Text = "+"
+SpeedUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedUp.TextSize = 20
 
-local minusCorner = Instance.new("UICorner")
-minusCorner.CornerRadius = UDim.new(0, 6)
-minusCorner.Parent = minusBtn
+local SpeedUpCorner = Instance.new("UICorner")
+SpeedUpCorner.CornerRadius = UDim.new(0, 6)
+SpeedUpCorner.Parent = SpeedUp
 
-local plusBtn = Instance.new("TextButton")
-plusBtn.Size = UDim2.new(0, 28, 0, 28)
-plusBtn.Position = UDim2.new(0.85, 0, 0.5, -14)
-plusBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-plusBtn.BorderSizePixel = 0
-plusBtn.Text = "+"
-plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-plusBtn.TextScaled = true
-plusBtn.Font = Enum.Font.GothamBold
-plusBtn.Parent = speedFrame
-
-local plusCorner = Instance.new("UICorner")
-plusCorner.CornerRadius = UDim.new(0, 6)
-plusCorner.Parent = plusBtn
-
-local function updateSpeed(val)
-    flySpeed = math.clamp(val, 1, 200)
-    speedValue.Text = tostring(flySpeed)
-    speedLabel.Text = "Speed: " .. tostring(flySpeed)
-    if flyEnabled and flyBodyVelocity then
-        flyBodyVelocity.Velocity = flyBodyVelocity.Velocity.Unit * flySpeed
-    end
-end
-
-speedValue.FocusLost:Connect(function()
-    local num = tonumber(speedValue.Text)
-    if num then
-        updateSpeed(num)
-    else
-        speedValue.Text = tostring(flySpeed)
-    end
+SpeedDown.MouseButton1Click:Connect(function()
+    FlySpeed = math.clamp(FlySpeed - 5, 10, 200)
+    SpeedLabel.Text = "Speed: " .. FlySpeed
+    SpeedValue.Text = tostring(FlySpeed)
 end)
 
-minusBtn.MouseButton1Click:Connect(function()
-    updateSpeed(flySpeed - 5)
+SpeedUp.MouseButton1Click:Connect(function()
+    FlySpeed = math.clamp(FlySpeed + 5, 10, 200)
+    SpeedLabel.Text = "Speed: " .. FlySpeed
+    SpeedValue.Text = tostring(FlySpeed)
 end)
 
-plusBtn.MouseButton1Click:Connect(function()
-    updateSpeed(flySpeed + 5)
-end)
+-- ================= INFO CONTENT =================
 
--- Info Content
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 1, -20)
-infoLabel.Position = UDim2.new(0, 10, 0, 10)
-infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Telegram: t.me/freedeltascripts"
-infoLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-infoLabel.TextScaled = true
-infoLabel.Font = Enum.Font.GothamBold
-infoLabel.TextWrapped = true
-infoLabel.Parent = infoContent
+local InfoText = Instance.new("TextLabel")
+InfoText.Parent = InfoContent
+InfoText.BackgroundTransparency = 1
+InfoText.Position = UDim2.new(0, 20, 0, 30)
+InfoText.Size = UDim2.new(1, -40, 1, -60)
+InfoText.Font = Enum.Font.GothamBold
+InfoText.Text = "Telegram: t.me/freedeltascripts"
+InfoText.TextColor3 = Color3.fromRGB(0, 170, 255)
+InfoText.TextSize = 16
+InfoText.TextWrapped = true
+InfoText.TextXAlignment = Enum.TextXAlignment.Center
+InfoText.TextYAlignment = Enum.TextYAlignment.Center
 
--- Tab switching
-mainTabBtn.MouseButton1Click:Connect(function()
-    mainContent.Visible = true
-    infoContent.Visible = false
-    mainTabBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    mainTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    infoTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    infoTabBtn.TextColor3 = Color3.fromRGB(200, 200, 230)
-end)
+local InfoSubText = Instance.new("TextLabel")
+InfoSubText.Parent = InfoContent
+InfoSubText.BackgroundTransparency = 1
+InfoSubText.Position = UDim2.new(0, 20, 0, 70)
+InfoSubText.Size = UDim2.new(1, -40, 0, 30)
+InfoSubText.Font = Enum.Font.Gotham
+InfoSubText.Text = "Fly: [F]  Noclip: [N]"
+InfoSubText.TextColor3 = Color3.fromRGB(150, 150, 150)
+InfoSubText.TextSize = 12
+InfoSubText.TextXAlignment = Enum.TextXAlignment.Center
 
-infoTabBtn.MouseButton1Click:Connect(function()
-    mainContent.Visible = false
-    infoContent.Visible = true
-    infoTabBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    infoTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    mainTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    mainTabBtn.TextColor3 = Color3.fromRGB(200, 200, 230)
-end)
+-- ================= FLY FUNCTIONS =================
 
--- Fly Functions
 function enableFly()
+    local character = LocalPlayer.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
     if not rootPart or not humanoid then return end
     
-    flyBodyVelocity = Instance.new("BodyVelocity")
-    flyBodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    flyBodyVelocity.Parent = rootPart
+    -- Clear old instances
+    if BodyVelocity then BodyVelocity:Destroy() end
+    if BodyGyro then BodyGyro:Destroy() end
+    if movementConnection then movementConnection:Disconnect() end
     
-    flyBodyGyro = Instance.new("BodyGyro")
-    flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-    flyBodyGyro.D = 500
-    flyBodyGyro.P = 5000
-    flyBodyGyro.CFrame = rootPart.CFrame
-    flyBodyGyro.Parent = rootPart
+    BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    BodyVelocity.Parent = rootPart
+    
+    BodyGyro = Instance.new("BodyGyro")
+    BodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    BodyGyro.D = 500
+    BodyGyro.P = 5000
+    BodyGyro.CFrame = rootPart.CFrame
+    BodyGyro.Parent = rootPart
     
     humanoid.PlatformStand = true
     humanoid.AutoRotate = false
     
-    runService:BindToRenderStep("FlyMovement", Enum.RenderPriority.Camera.Value, function()
-        if not flyEnabled then return end
-        if not rootPart or not rootPart.Parent then return end
+    -- Movement loop
+    movementConnection = RunService.RenderStepped:Connect(function()
+        if not Flying then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local cam = workspace.CurrentCamera
         
-        local moveDirection = Vector3.new()
-        local camera = workspace.CurrentCamera
-        
-        if userInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDirection = moveDirection + camera.CFrame.LookVector * Vector3.new(1, 0, 1)
+        if root and BodyVelocity and BodyGyro then
+            local moveDir = Vector3.new(0, 0, 0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDir = moveDir + cam.CFrame.LookVector * Vector3.new(1, 0, 1)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDir = moveDir - cam.CFrame.LookVector * Vector3.new(1, 0, 1)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDir = moveDir - cam.CFrame.RightVector * Vector3.new(1, 0, 1)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDir = moveDir + cam.CFrame.RightVector * Vector3.new(1, 0, 1)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDir = moveDir + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                moveDir = moveDir + Vector3.new(0, -1, 0)
+            end
+            
+            if moveDir.Magnitude > 0 then
+                moveDir = moveDir.Unit * FlySpeed
+            else
+                moveDir = Vector3.new(0, 0, 0)
+            end
+            
+            BodyVelocity.Velocity = moveDir
+            BodyGyro.CFrame = cam.CFrame
         end
-        if userInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDirection = moveDirection - camera.CFrame.LookVector * Vector3.new(1, 0, 1)
-        end
-        if userInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDirection = moveDirection - camera.CFrame.RightVector * Vector3.new(1, 0, 1)
-        end
-        if userInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveDirection = moveDirection + camera.CFrame.RightVector * Vector3.new(1, 0, 1)
-        end
-        if userInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if userInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            moveDirection = moveDirection + Vector3.new(0, -1, 0)
-        end
-        
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit * flySpeed
-        else
-            moveDirection = Vector3.new(0, 0, 0)
-        end
-        
-        flyBodyVelocity.Velocity = moveDirection
-        flyBodyGyro.CFrame = camera.CFrame * CFrame.Angles(0, 0, 0)
     end)
 end
 
 function disableFly()
-    flyEnabled = false
-    if flyBodyVelocity then
-        flyBodyVelocity:Destroy()
-        flyBodyVelocity = nil
+    if BodyVelocity then
+        BodyVelocity:Destroy()
+        BodyVelocity = nil
     end
-    if flyBodyGyro then
-        flyBodyGyro:Destroy()
-        flyBodyGyro = nil
+    if BodyGyro then
+        BodyGyro:Destroy()
+        BodyGyro = nil
     end
-    if humanoid then
-        humanoid.PlatformStand = false
-        humanoid.AutoRotate = true
+    if movementConnection then
+        movementConnection:Disconnect()
+        movementConnection = nil
     end
-    runService:UnbindFromRenderStep("FlyMovement")
-end
-
--- Noclip Functions
-function enableNoclip()
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
-    end
-    
-    noclipConnection = runService.Stepped:Connect(function()
-        if not noclipEnabled then return end
-        local char = player.Character
-        if not char then return end
-        
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end)
-end
-
-function disableNoclip()
-    noclipEnabled = false
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
-    end
-    local char = player.Character
+    local char = LocalPlayer.Character
     if char then
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+            hum.AutoRotate = true
         end
     end
 end
 
--- Minimize
-local menuHidden = false
-minimizeButton.MouseButton1Click:Connect(function()
-    menuHidden = not menuHidden
-    contentContainer.Visible = not menuHidden
-    tabFrame.Visible = not menuHidden
-    minimizeButton.Text = menuHidden and "+" or "−"
-    if menuHidden then
-        mainFrame.Size = UDim2.new(0, 280, 0, 35)
-    else
-        mainFrame.Size = UDim2.new(0, 280, 0, 200)
+-- ================= NOCLIP LOOP =================
+
+RunService.Stepped:Connect(function()
+    if NoclipActive then
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
     end
 end)
 
--- Keybinds
-userInputService.InputBegan:Connect(function(input, gameProcessed)
+-- ================= KEYBINDS =================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.KeyCode == Enum.KeyCode.F then
-        local state = not flyEnabled
-        flyEnabled = state
-        flyToggle[2].BackgroundColor3 = state and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(200, 50, 50)
-        flyToggle[2].Text = state and "ON" or "OFF"
-        if state then
+        flyState = not flyState
+        Flying = flyState
+        if flyState then
+            FlyBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 70)
+            FlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            FlyBtn.Text = "Fly: ON"
             enableFly()
         else
+            FlyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            FlyBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            FlyBtn.Text = "Fly: OFF"
             disableFly()
         end
     end
     
     if input.KeyCode == Enum.KeyCode.N then
-        local state = not noclipEnabled
-        noclipEnabled = state
-        noclipToggle[2].BackgroundColor3 = state and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(200, 50, 50)
-        noclipToggle[2].Text = state and "ON" or "OFF"
-        if state then
-            enableNoclip()
+        noclipState = not noclipState
+        NoclipActive = noclipState
+        if noclipState then
+            NoclipBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 70)
+            NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            NoclipBtn.Text = "Noclip: ON"
         else
-            disableNoclip()
+            NoclipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            NoclipBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            NoclipBtn.Text = "Noclip: OFF"
         end
     end
-    
-    if input.KeyCode == Enum.KeyCode.V then
-        minimizeButton.MouseButton1Click:Fire()
-    end
 end)
 
--- Cleanup
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    rootPart = newChar:WaitForChild("HumanoidRootPart")
-    humanoid = newChar:WaitForChild("Humanoid")
-    
-    if flyEnabled then
+-- ================= CLEANUP =================
+
+LocalPlayer.CharacterAdded:Connect(function()
+    if Flying then
         disableFly()
-        flyEnabled = false
-        flyToggle[2].BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        flyToggle[2].Text = "OFF"
-    end
-    if noclipEnabled then
-        disableNoclip()
-        noclipEnabled = false
-        noclipToggle[2].BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        noclipToggle[2].Text = "OFF"
+        enableFly()
     end
 end)
 
-print("✦ FlyAndNoclip Loaded ✦")
+print("FlyAndNoclip Loaded!")
 print("Telegram: t.me/freedeltascripts")
-print("Keys: [F] Fly | [N] Noclip | [V] Menu")
+print("Keys: [F] Fly | [N] Noclip")
