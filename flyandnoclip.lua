@@ -1,5 +1,5 @@
 -- ============================================================================
--- FLYANDNOCLIP ULTIMATE SUITE (FIXED FULL 3D VERTICAL CAMERA FLIGHT)
+-- FLYANDNOCLIP ULTIMATE SUITE (ABSOLUTE 3D CAMERA FLIGHT WITH VERTICAL FIX)
 -- ============================================================================
 
 local Players = game:GetService("Players")
@@ -200,7 +200,7 @@ createToggle("Noclip", function(state)
     NoclipActive = state
 end)
 
--- 2. Fly Toggle with physics initialization
+-- 2. Fly Toggle with strict physics initialization
 createToggle("Fly", function(state)
     Flying = state
     local character = LocalPlayer.Character
@@ -297,7 +297,7 @@ InfoText.TextWrapped = true
 InfoText.TextXAlignment = Enum.TextXAlignment.Center
 InfoText.TextYAlignment = Enum.TextYAlignment.Center
 
--- Main Loops (Noclip and Full 3D Camera Directional Flight)
+-- Main Loops (Noclip and True 3D Flight Direction)
 RunService.Stepped:Connect(function()
     if NoclipActive and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -319,27 +319,30 @@ RunService.RenderStepped:Connect(function()
             local lookVector = camera.CFrame.LookVector
             local rightVector = camera.CFrame.RightVector
             
-            -- PC Keyboard controls (W, S, A, D) strictly follow camera view in all directions
+            -- PC Keys (W, S, A, D)
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
             
-            -- Mobile thumbstick joystick full 3D integration
+            -- Mobile Joystick (Thumbstick): strictly following camera view pitch (up/down/forward)
             if humanoid and humanoid.MoveDirection.Magnitude > 0 then
-                -- Map joystick movement directly to camera look vector (allows moving up/down by looking up/down)
-                local camFlatLook = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
-                moveDir = (rightVector * humanoid.MoveDirection.X) + (camFlatLook * (-humanoid.MoveDirection.Z))
-                -- Merge full vertical pitch component based on camera angle when joystick is pushed forward
-                moveDir = moveDir + (lookVector * (-humanoid.MoveDirection.Z))
+                local rawMove = humanoid.MoveDirection
+                -- Combine camera vectors based on movement joystick input to ensure full 3D directional flight
+                moveDir = (rightVector * rawMove.X) + (lookVector * (-rawMove.Z))
             end
             
-            -- Jump button pushes character straight up
+            -- Jump button gives extra upward push
             if humanoid and humanoid.Jump then
                 moveDir = moveDir + Vector3.new(0, 1, 0)
             end
             
-            BodyVelocity.Velocity = moveDir.Unit * FlySpeed
+            if moveDir.Magnitude > 0 then
+                BodyVelocity.Velocity = moveDir.Unit * FlySpeed
+            else
+                BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            
             BodyGyro.CFrame = camera.CFrame
         end
     end
